@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  # Informational until the pre-existing baseline (~70 type errors, a
+  # never-linted codebase) is cleaned up. Runs on every PR either way so
+  # the trend stays visible.
+  typecheck:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - run: npm run typecheck
+
+  lint:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - run: npm run lint
+
+  # Blocking. See scripts/audit-check.mjs for the documented allowlist,
+  # everything on it is either build-tool-only or a tracked follow-up.
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - run: npm run audit:check
+
+  # Blocking. Boots the real server against real Postgres/Redis service
+  # containers and confirms it actually comes up.
+  smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: blitz_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      PORT: 8000
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/blitz_ci
+      CLIENT_URL: http://localhost:3000
+      JWT_SECRET: ci-only-placeholder-secret-not-used-for-anything-real
+      BETTER_AUTH_SECRET: ci-only-placeholder-secret-not-used-for-anything-real
+      BETTER_AUTH_URL: http://localhost:8000
+      GOOGLE_CLIENT_SECRET: ci-placeholder
+      GOOGLE_CLIENT_ID: ci-placeholder
+      GOOGLE_REDIRECT_URI: http://localhost:8000/api/v1/auth/google/callback
+      # Real credentials, /health doesn't call Cloudinary but the boot
+      # sequence pings it and exits if that fails. Add these as repo
+      # secrets (Settings -> Secrets -> Actions), the free tier covers it.
+      CLOUDINARY_NAME: ${{ secrets.CLOUDINARY_NAME }}
+      CLOUDINARY_KEY: ${{ secrets.CLOUDINARY_KEY }}
+      CLOUDINARY_SECRET: ${{ secrets.CLOUDINARY_SECRET }}
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      REDIS_USERNAME: default
+      REDIS_PASSWORD: ""
+      STRIPE_SECRET_KEY: sk_test_ci_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_ci_placeholder
+      GMAIL_APP_PASSWORD: ci-placeholder
+      GROQ_API_KEY: ci-placeholder
+      GROQ_MODEL: llama-3.3-70b-versatile
+      FORM_EMAIL: ci@example.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - name: Boot server and check /health
+        run: |
+          npx tsx src/server.ts &
+          SERVER_PID=$!
+          for i in $(seq 1 20); do
+            if curl -sf http://localhost:8000/health; then
+              echo "Server is up"
+              kill $SERVER_PID
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Server never became healthy"
+          kill $SERVER_PID 2>/dev/null || true
+          exit 1

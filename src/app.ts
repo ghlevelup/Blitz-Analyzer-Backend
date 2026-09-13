@@ -1,14 +1,19 @@
 import { toNodeHandler } from "better-auth/node";
+import * as Sentry from "@sentry/node";
 import express, { type Express } from "express";
 import { envConfig } from "./config/env";
 import { auth } from "./lib/auth";
 import { applyMiddleware } from "./middleware";
+import { authMiddleware, roleMiddleware } from "./middleware/auth-middlewares";
 import { errorHandler } from "./middleware/errorHandler";
 import { notFound } from "./middleware/notFound";
 import indexRouter from "./routes/index.route";
 import stripeRouter from "./modules/stripe/stripe.route";
 import path from "path";
 import { cwd } from "process";
+import { metrics } from "./utils/metrics";
+import { analysisQueue } from "./queue/analysisQueue";
+import { emailQueue } from "./queue/emailQueue";
 const app: Express = express();
 
 
@@ -35,6 +40,28 @@ app.get("/", (req, res) => {
   res.render("home");
 });
 
+// Admin-only: Groq/HTTP counters plus live BullMQ queue depth. In-memory,
+// resets on restart, see utils/metrics.ts for the tradeoffs.
+app.get(
+  "/metrics",
+  authMiddleware,
+  roleMiddleware(["ADMIN"]),
+  async (_req, res) => {
+    const [analysisCounts, emailCounts] = await Promise.all([
+      analysisQueue.getJobCounts(),
+      emailQueue.getJobCounts(),
+    ]);
+
+    res.json({
+      ...metrics.snapshot(),
+      queues: {
+        analysisQueue: analysisCounts,
+        emailQueue: emailCounts,
+      },
+    });
+  }
+);
+
 export const startServer = async () => {
 
   try {
@@ -48,6 +75,8 @@ export const startServer = async () => {
   }
 };
 app.use(notFound);
+// captures the error for Sentry, still passes it on to our own errorHandler
+Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);
 
 

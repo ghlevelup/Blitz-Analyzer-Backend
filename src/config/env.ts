@@ -34,6 +34,9 @@ const envSchema = z.object({
   GROQ_MODEL: z.string(),
   FORM_EMAIL: z.string().email(),
   GOOGLE_REDIRECT_URI: z.string(),
+
+  // optional: Sentry stays a no-op until this is set, no account required for local dev
+  SENTRY_DSN: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

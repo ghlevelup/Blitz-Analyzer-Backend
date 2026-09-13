@@ -1,3 +1,4 @@
+import "./instrument";
 import { startServer } from "./app";
 import { configureCloudinary } from "./config/cloudinary.config";
 import { connectToDatabase, prisma } from "./config/db";

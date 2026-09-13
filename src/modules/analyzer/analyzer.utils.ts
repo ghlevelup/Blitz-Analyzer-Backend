@@ -1,30 +1,41 @@
 import { Groq } from "groq-sdk"
 import { envConfig } from "../../config/env"
 import { logger } from "../../utils/logger"
+import { metrics } from "../../utils/metrics"
 
 
 const groq = new Groq({
   apiKey: envConfig.GROQ_API_KEY
 })
 
+// Every AI-consuming service (ATS scan, job matcher, optimize, improve)
+// funnels through here, so this one wrapper covers Groq call metrics.
 export const runLLM = async (
   systemPrompt: string,
   userPrompt: string
 ) => {
+  const startedAt = Date.now();
 
-  const completion:any = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt }
-    ],
-    temperature: 0.1,
-    response_format: { type: "json_object" }
-  })
+  try {
+    const completion:any = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.1,
+      response_format: { type: "json_object" }
+    })
 
-  return JSON.parse(
-    completion.choices[0].message.content || "{}"
-  )
+    metrics.recordGroqCall(Date.now() - startedAt, false);
+
+    return JSON.parse(
+      completion.choices[0].message.content || "{}"
+    )
+  } catch (error) {
+    metrics.recordGroqCall(Date.now() - startedAt, true);
+    throw error;
+  }
 }
 
 

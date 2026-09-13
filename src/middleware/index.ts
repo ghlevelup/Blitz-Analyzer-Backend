@@ -1,12 +1,20 @@
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import express, { type Express, type Request, type Response } from "express";
+import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import helmet from "helmet";
 import hpp from "hpp";
 import { rateLimit } from "express-rate-limit";
 import { corsConfig } from "../config/cors";
 import { httpLogger } from "../utils/logger";
+import { metrics } from "../utils/metrics";
+
+// Feeds the /metrics endpoint's aggregate request latency.
+const requestTiming = (req: Request, res: Response, next: NextFunction) => {
+  const startedAt = Date.now();
+  res.on("finish", () => metrics.recordHttpRequest(Date.now() - startedAt));
+  next();
+};
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -46,6 +54,7 @@ export const applyMiddleware = (app: Express): void => {
   app.use(hpp());
   app.use(apiLimiter);
   app.use(httpLogger);
+  app.use(requestTiming);
   app.use(compression());
   app.use(cookieParser());
 
