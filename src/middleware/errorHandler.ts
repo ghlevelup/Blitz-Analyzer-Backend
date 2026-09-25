@@ -25,6 +25,15 @@ export const errorHandler = (err: any, _req: Request, res: Response, _next: Next
     stack = prismaError.stack
   }
 
+  // Fall back to whatever status the thrown error already carries (e.g.
+  // csrf-csrf's ForbiddenError, or any other http-errors-style error) -
+  // without this, these surfaced as a generic 500 instead of their real
+  // status code.
+  else if (typeof err.statusCode === "number" || typeof err.status === "number") {
+    statusCode = err.statusCode ?? err.status;
+    message = err.message || message;
+  }
+
   // Send final response
   res.status(statusCode).json({
     success: false,

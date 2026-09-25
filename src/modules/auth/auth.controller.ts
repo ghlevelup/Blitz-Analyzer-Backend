@@ -6,16 +6,29 @@ import { authServices } from "./auth.service";
 import { tokenUtils } from "../../utils/token";
 import { envConfig } from "../../config/env";
 import { auth } from "../../lib/auth";
-import { getGoogleAuthUrl } from "../../utils/google";
-import { getRequestContext } from "../../utils/deviceInfo";
+import { generateCsrfToken } from "../../middleware/csrf";
+
+// -------------------- CSRF TOKEN --------------------
+const getCsrfToken = asyncHandler(async (req: Request, res: Response) => {
+  const csrfToken = generateCsrfToken(req, res);
+  return sendSuccess(res, {
+    data: { csrfToken },
+    message: "CSRF token issued",
+  });
+});
 
 // -------------------- REGISTER --------------------
 const registerController = asyncHandler(async (req: Request, res: Response) => {
-  const { name, email, password ,contactNumber} = req.body;
+  const { name, email, password, contactNumber } = req.body;
+  // role is Zod-validated + defaulted to "USER" in auth.schema.ts - reading
+  // from req.validated (not req.body) picks up that default, and the schema
+  // already rejects anything other than USER/MANAGER (no self-serve ADMIN).
+  const role = (req as any).validated?.role ?? "USER";
 
-  const result = await authServices.registerManager({
-    name, email, password,contactNumber
-  })
+  const result = role === "MANAGER"
+    ? await authServices.registerManager({ name, email, password, contactNumber, role })
+    : await authServices.registerUser({ name, email, password, contactNumber, role });
+
   return sendSuccess(res, {
     statusCode: 201,
     data: result,
@@ -171,20 +184,30 @@ const updateProfileInfo = asyncHandler(async (req, res) => {
 
 
 // --------------------  LOGIN WITH GOOGLE --------------------
-
+// Uses better-auth's own native social sign-in (auth.api.signInSocial) —
+// it already handles the OAuth redirect, state/PKCE, token exchange, and
+// session-cookie creation correctly. callbackURL points back at our own
+// /google/success route so we can create the app-specific CustomerProfile
+// row on first sign-in; errorCallbackURL sends failures straight to the
+// frontend sign-in page instead of round-tripping through our backend.
 const googleLogin = asyncHandler(async (req: Request, res: Response) => {
-  const redirectPath = req.query.redirect || "/dashboard";
+  const redirectPath = (req.query.redirect as string) || "/dashboard";
+  const isValidRedirectPath = redirectPath.startsWith("/") && !redirectPath.startsWith("//");
+  const encodedRedirectPath = encodeURIComponent(isValidRedirectPath ? redirectPath : "/dashboard");
 
-  const encodedRedirectPath = encodeURIComponent(redirectPath as string);
+  const result = await auth.api.signInSocial({
+    body: {
+      provider: "google",
+      callbackURL: `${envConfig.BETTER_AUTH_URL}/api/v1/auth/google/success?redirect=${encodedRedirectPath}`,
+      errorCallbackURL: `${envConfig.CLIENT_URL}/sign-in?error=oauth_failed`,
+    },
+  });
 
-  const callbackURL = `${envConfig.BETTER_AUTH_URL}/api/v1/auth/google/success?redirect=${encodedRedirectPath}`;
-  const nonce = "random-string-123";
-  res.render("googleRedirect", {
-    callbackURL: callbackURL,
-    betterAuthUrl: envConfig.BETTER_AUTH_URL,
-    scriptNonce: nonce
-  })
-})
+  return sendSuccess(res, {
+    data: { url: result.url },
+    message: "Google auth URL generated",
+  });
+});
 
 const googleLoginSuccess = asyncHandler(async (req: Request, res: Response) => {
   const redirectPath = req.query.redirect as string || "/dashboard";
@@ -197,7 +220,7 @@ const googleLoginSuccess = asyncHandler(async (req: Request, res: Response) => {
   });
 
   if (!session?.user) {
-    return res.redirect(`${envConfig.CLIENT_URL}/login?error=no_session_found`);
+    return res.redirect(`${envConfig.CLIENT_URL}/sign-in?error=no_session_found`);
   }
 
   await authServices.googleLoginSuccess(session);
@@ -210,51 +233,9 @@ const googleLoginSuccess = asyncHandler(async (req: Request, res: Response) => {
 });
 
 
-// ---------------- GOOGLE OAUTH ----------------
-const googleRedirect = asyncHandler(async (_req: Request, res: Response) => {
-  const url = getGoogleAuthUrl();
-  console.log("main url",url);
-  
-  res.json({
-    url:url
-  })
-});
-
-const googleCallback = asyncHandler(async (req: Request, res: Response) => {
-
-  const code = req.query.code as string | undefined;
-  console.log("code",code);
-  
-  if (!code) {
-    console.log(code);
-    res.redirect(`${envConfig.CLIENT_URL}/login?error=oauth_missing_code`);
-    return;
-  }
-  try {
-    const ctx = getRequestContext(req);
-    const result = await authServices.googleOAuthCallback(code, ctx);
-
-    tokenUtils.setBetterAuthSessionCookie(res, result.sessionToken)
-    res.redirect(`${envConfig.CLIENT_URL}/dashboard`);
-  } catch (err) {
-    const msg = err instanceof Error ? encodeURIComponent(err.message) : "oauth_failed";
-    console.log(err);
-    
-    res.redirect(`${envConfig.CLIENT_URL}/login?error=${msg}`);
-  }
-});
-
-
-
-
-const handleOAuthError = asyncHandler(async (req: Request, res: Response) => {
-  const error = req.query.error as string || "oauth_failed";
-  res.redirect(`${envConfig.CLIENT_URL}/login?error=${error}`);
-})
-
-
 
 export const authControllers = {
+  getCsrfToken,
   registerController, loginController, getUserProfileController, logoutUserController,
   changePasswordController,
   requestPasswordResetController, resetPasswordController,
@@ -262,8 +243,5 @@ export const authControllers = {
   updateProfileInfo,changeProfileAvatar,
   resendOtp,
   googleLoginSuccess,
-  handleOAuthError,
   googleLogin,
-  googleRedirect,
-  googleCallback
 };

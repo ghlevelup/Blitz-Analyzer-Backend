@@ -13,6 +13,14 @@ const registerUserSchema = z.object({
     .string()
     .min(6, "Password must be at least 6 characters long"),
 
+  // Public self-registration can only ever create USER or MANAGER accounts -
+  // ADMIN must never be reachable here, or anyone could POST role:"ADMIN"
+  // directly (bypassing the frontend's own dropdown) and self-provision an
+  // admin account.
+  role: z
+    .enum(["USER", "MANAGER"], { message: "Role must be USER or MANAGER" })
+    .default("USER"),
+
 });
 
 const loginUserSchema = z.object({

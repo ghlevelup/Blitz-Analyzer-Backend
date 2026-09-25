@@ -24,6 +24,17 @@ const getAllTemplates = asyncHandler(async (req, res) => {
   });
 });
 
+// 👉 Get most popular (by real usage)
+const getPopularTemplates = asyncHandler(async (req, res) => {
+  const limit = Number(req.query.limit) || 6;
+  const result = await templateServices.getPopularTemplates(limit);
+
+  return sendSuccess(res, {
+    data: result,
+    message: "Popular templates fetched",
+  });
+});
+
 // 👉 Get single
 const getTemplateDetails = asyncHandler(async (req, res) => {
   const result = await templateServices.getTemplateById(req.params.id as string);
@@ -60,6 +71,7 @@ const deleteTemplateController = asyncHandler(async (req, res) => {
 export const templateControllers = {
   createTemplateController,
   getAllTemplates,
+  getPopularTemplates,
   getTemplateDetails,
   updateTemplateController,
   deleteTemplateController,

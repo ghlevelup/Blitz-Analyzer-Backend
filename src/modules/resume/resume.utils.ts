@@ -4,6 +4,10 @@ import { uploadPdfBufferToCloudinary } from "../media/media.service";
 import { AppError } from "../../utils/AppError";
 import { cloudinaryInstance } from "../../config/cloudinary.config";
 import streamifier from "streamifier";
+import { registerResumeHelpers } from "../../utils/handlebarsHelpers";
+
+registerResumeHelpers();
+
 export const mergeResume = ({ templateString, resumeData }: { resumeData: any, templateString: string }) => {
   const template = Handlebars.compile(templateString);
   const finalHTML = template(resumeData);

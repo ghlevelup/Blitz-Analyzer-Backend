@@ -10,6 +10,7 @@ export const createTemplateSchema = z.object({
 
   price: z.number().int().nonnegative("Price cannot be negative"),
   isPremium: z.boolean().optional(),
+  category: z.string().optional(),
 
   htmlLayout: z.string().min(1, "HTML layout is required"),
   sections: z.any().optional(), // flexible JSON, sections config

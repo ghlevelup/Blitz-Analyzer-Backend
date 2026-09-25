@@ -2,14 +2,18 @@ model Template {
   id          String   @id @default(uuid())
   name        String
   slug        String   @unique
-  
+
   descriptions Json
   previewUrl  String
   price       Int      // credit price
   isPremium   Boolean  @default(false)
+  // "minimalist" | "modern" | "executive" | "creative" | "tech" |
+  // "hybrid" | "academic" | "healthcare" | "finance-legal" | "compact"
+  category    String?
 
   htmlLayout  String   // template HTML
   sections    Json     // supported sections
+  usageCount  Int      @default(0) // durable count of resumes created from this template
   resume Resume[]
   createdAt   DateTime @default(now())
   @@map("templates")

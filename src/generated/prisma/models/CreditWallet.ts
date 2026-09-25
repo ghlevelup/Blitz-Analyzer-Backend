@@ -368,14 +368,6 @@ export type CreditWalletNullableScalarRelationFilter = {
   isNot?: Prisma.CreditWalletWhereInput | null
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type CreditWalletCreateNestedOneWithoutTransactionsInput = {
   create?: Prisma.XOR<Prisma.CreditWalletCreateWithoutTransactionsInput, Prisma.CreditWalletUncheckedCreateWithoutTransactionsInput>
   connectOrCreate?: Prisma.CreditWalletCreateOrConnectWithoutTransactionsInput

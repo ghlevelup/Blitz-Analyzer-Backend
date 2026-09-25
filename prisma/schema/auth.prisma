@@ -63,10 +63,15 @@ model Verification {
  id          String   @id @default(uuid())
   identifier String
   value      String
+  attempts   Int      @default(0)
   expiresAt  DateTime
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  type        VerificationType
+  // Nullable: better-auth reuses this same table internally (e.g. OAuth
+  // state) and writes rows without a type. Null means "not one of our
+  // app-specific OTP types" - our own queries always filter by an explicit
+  // type, so better-auth's internal rows are naturally invisible to them.
+  type        VerificationType?
   @@index([identifier])
   @@map("verification")
 }

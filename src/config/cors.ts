@@ -1,8 +1,8 @@
+import { envConfig } from "./env";
+
 export const corsConfig = {
-  origin: ['http://localhost:3000',"https://blitz-analyzer.vercel.app"],
+  origin: envConfig.CORS_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean),
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS','PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'x-csrf-token'],
   credentials: true,
 };
-
-

@@ -8,11 +8,12 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL: z.string().url(),
   CLIENT_URL: z.string(),
-  JWT_SECRET: z.string().min(32),
-  JWT_EXPIRES_IN: z.string().default('1d'),
+  // Comma-separated list of allowed CORS origins
+  CORS_ORIGINS: z.string().default('http://localhost:3000,https://blitz-analyzer.vercel.app'),
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(4).max(31).default(12),
-  
+
   BETTER_AUTH_SECRET: z.string().min(32),
+  CSRF_SECRET: z.string().min(32),
 
   BETTER_AUTH_URL: z.string(),
   GOOGLE_CLIENT_SECRET: z.string(),
@@ -33,7 +34,6 @@ const envSchema = z.object({
   GROQ_API_KEY: z.string(),
   GROQ_MODEL: z.string(),
   FORM_EMAIL: z.string().email(),
-  GOOGLE_REDIRECT_URI: z.string(),
 
   // optional: Sentry stays a no-op until this is set, no account required for local dev
   SENTRY_DSN: z.string().optional(),

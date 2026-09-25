@@ -8,8 +8,8 @@ const transporter = nodemailer.createTransport({
   port: 465,         // Corrected from 547
   secure: true,     // Required for port 587; set to true ONLY for port 465
   auth: {
-    user:"devhabib2005@gmail.com",
-    pass:"yhqthhvqbsknziis" 
+    user: envConfig.FORM_EMAIL,
+    pass: envConfig.GMAIL_APP_PASSWORD
   },
 
 });

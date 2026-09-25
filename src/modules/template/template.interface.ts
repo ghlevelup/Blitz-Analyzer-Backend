@@ -6,6 +6,7 @@ name: string;
   previewUrl: string;
   price:number;
   isPremium:boolean;
+  category?:string;
   sections:string[];
 }
 

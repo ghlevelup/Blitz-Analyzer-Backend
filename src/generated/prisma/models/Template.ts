@@ -28,10 +28,12 @@ export type AggregateTemplate = {
 
 export type TemplateAvgAggregateOutputType = {
   price: number | null
+  usageCount: number | null
 }
 
 export type TemplateSumAggregateOutputType = {
   price: number | null
+  usageCount: number | null
 }
 
 export type TemplateMinAggregateOutputType = {
@@ -41,7 +43,9 @@ export type TemplateMinAggregateOutputType = {
   previewUrl: string | null
   price: number | null
   isPremium: boolean | null
+  category: string | null
   htmlLayout: string | null
+  usageCount: number | null
   createdAt: Date | null
 }
 
@@ -52,7 +56,9 @@ export type TemplateMaxAggregateOutputType = {
   previewUrl: string | null
   price: number | null
   isPremium: boolean | null
+  category: string | null
   htmlLayout: string | null
+  usageCount: number | null
   createdAt: Date | null
 }
 
@@ -64,8 +70,10 @@ export type TemplateCountAggregateOutputType = {
   previewUrl: number
   price: number
   isPremium: number
+  category: number
   htmlLayout: number
   sections: number
+  usageCount: number
   createdAt: number
   _all: number
 }
@@ -73,10 +81,12 @@ export type TemplateCountAggregateOutputType = {
 
 export type TemplateAvgAggregateInputType = {
   price?: true
+  usageCount?: true
 }
 
 export type TemplateSumAggregateInputType = {
   price?: true
+  usageCount?: true
 }
 
 export type TemplateMinAggregateInputType = {
@@ -86,7 +96,9 @@ export type TemplateMinAggregateInputType = {
   previewUrl?: true
   price?: true
   isPremium?: true
+  category?: true
   htmlLayout?: true
+  usageCount?: true
   createdAt?: true
 }
 
@@ -97,7 +109,9 @@ export type TemplateMaxAggregateInputType = {
   previewUrl?: true
   price?: true
   isPremium?: true
+  category?: true
   htmlLayout?: true
+  usageCount?: true
   createdAt?: true
 }
 
@@ -109,8 +123,10 @@ export type TemplateCountAggregateInputType = {
   previewUrl?: true
   price?: true
   isPremium?: true
+  category?: true
   htmlLayout?: true
   sections?: true
+  usageCount?: true
   createdAt?: true
   _all?: true
 }
@@ -209,8 +225,10 @@ export type TemplateGroupByOutputType = {
   previewUrl: string
   price: number
   isPremium: boolean
+  category: string | null
   htmlLayout: string
   sections: runtime.JsonValue
+  usageCount: number
   createdAt: Date
   _count: TemplateCountAggregateOutputType | null
   _avg: TemplateAvgAggregateOutputType | null
@@ -245,8 +263,10 @@ export type TemplateWhereInput = {
   previewUrl?: Prisma.StringFilter<"Template"> | string
   price?: Prisma.IntFilter<"Template"> | number
   isPremium?: Prisma.BoolFilter<"Template"> | boolean
+  category?: Prisma.StringNullableFilter<"Template"> | string | null
   htmlLayout?: Prisma.StringFilter<"Template"> | string
   sections?: Prisma.JsonFilter<"Template">
+  usageCount?: Prisma.IntFilter<"Template"> | number
   createdAt?: Prisma.DateTimeFilter<"Template"> | Date | string
   resume?: Prisma.ResumeListRelationFilter
 }
@@ -259,8 +279,10 @@ export type TemplateOrderByWithRelationInput = {
   previewUrl?: Prisma.SortOrder
   price?: Prisma.SortOrder
   isPremium?: Prisma.SortOrder
+  category?: Prisma.SortOrderInput | Prisma.SortOrder
   htmlLayout?: Prisma.SortOrder
   sections?: Prisma.SortOrder
+  usageCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   resume?: Prisma.ResumeOrderByRelationAggregateInput
 }
@@ -276,8 +298,10 @@ export type TemplateWhereUniqueInput = Prisma.AtLeast<{
   previewUrl?: Prisma.StringFilter<"Template"> | string
   price?: Prisma.IntFilter<"Template"> | number
   isPremium?: Prisma.BoolFilter<"Template"> | boolean
+  category?: Prisma.StringNullableFilter<"Template"> | string | null
   htmlLayout?: Prisma.StringFilter<"Template"> | string
   sections?: Prisma.JsonFilter<"Template">
+  usageCount?: Prisma.IntFilter<"Template"> | number
   createdAt?: Prisma.DateTimeFilter<"Template"> | Date | string
   resume?: Prisma.ResumeListRelationFilter
 }, "id" | "slug">
@@ -290,8 +314,10 @@ export type TemplateOrderByWithAggregationInput = {
   previewUrl?: Prisma.SortOrder
   price?: Prisma.SortOrder
   isPremium?: Prisma.SortOrder
+  category?: Prisma.SortOrderInput | Prisma.SortOrder
   htmlLayout?: Prisma.SortOrder
   sections?: Prisma.SortOrder
+  usageCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.TemplateCountOrderByAggregateInput
   _avg?: Prisma.TemplateAvgOrderByAggregateInput
@@ -311,8 +337,10 @@ export type TemplateScalarWhereWithAggregatesInput = {
   previewUrl?: Prisma.StringWithAggregatesFilter<"Template"> | string
   price?: Prisma.IntWithAggregatesFilter<"Template"> | number
   isPremium?: Prisma.BoolWithAggregatesFilter<"Template"> | boolean
+  category?: Prisma.StringNullableWithAggregatesFilter<"Template"> | string | null
   htmlLayout?: Prisma.StringWithAggregatesFilter<"Template"> | string
   sections?: Prisma.JsonWithAggregatesFilter<"Template">
+  usageCount?: Prisma.IntWithAggregatesFilter<"Template"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Template"> | Date | string
 }
 
@@ -324,8 +352,10 @@ export type TemplateCreateInput = {
   previewUrl: string
   price: number
   isPremium?: boolean
+  category?: string | null
   htmlLayout: string
   sections: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  usageCount?: number
   createdAt?: Date | string
   resume?: Prisma.ResumeCreateNestedManyWithoutTemplateInput
 }
@@ -338,8 +368,10 @@ export type TemplateUncheckedCreateInput = {
   previewUrl: string
   price: number
   isPremium?: boolean
+  category?: string | null
   htmlLayout: string
   sections: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  usageCount?: number
   createdAt?: Date | string
   resume?: Prisma.ResumeUncheckedCreateNestedManyWithoutTemplateInput
 }
@@ -352,8 +384,10 @@ export type TemplateUpdateInput = {
   previewUrl?: Prisma.StringFieldUpdateOperationsInput | string
   price?: Prisma.IntFieldUpdateOperationsInput | number
   isPremium?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   htmlLayout?: Prisma.StringFieldUpdateOperationsInput | string
   sections?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resume?: Prisma.ResumeUpdateManyWithoutTemplateNestedInput
 }
@@ -366,8 +400,10 @@ export type TemplateUncheckedUpdateInput = {
   previewUrl?: Prisma.StringFieldUpdateOperationsInput | string
   price?: Prisma.IntFieldUpdateOperationsInput | number
   isPremium?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   htmlLayout?: Prisma.StringFieldUpdateOperationsInput | string
   sections?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resume?: Prisma.ResumeUncheckedUpdateManyWithoutTemplateNestedInput
 }
@@ -380,8 +416,10 @@ export type TemplateCreateManyInput = {
   previewUrl: string
   price: number
   isPremium?: boolean
+  category?: string | null
   htmlLayout: string
   sections: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  usageCount?: number
   createdAt?: Date | string
 }
 
@@ -393,8 +431,10 @@ export type TemplateUpdateManyMutationInput = {
   previewUrl?: Prisma.StringFieldUpdateOperationsInput | string
   price?: Prisma.IntFieldUpdateOperationsInput | number
   isPremium?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   htmlLayout?: Prisma.StringFieldUpdateOperationsInput | string
   sections?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -406,8 +446,10 @@ export type TemplateUncheckedUpdateManyInput = {
   previewUrl?: Prisma.StringFieldUpdateOperationsInput | string
   price?: Prisma.IntFieldUpdateOperationsInput | number
   isPremium?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   htmlLayout?: Prisma.StringFieldUpdateOperationsInput | string
   sections?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -424,13 +466,16 @@ export type TemplateCountOrderByAggregateInput = {
   previewUrl?: Prisma.SortOrder
   price?: Prisma.SortOrder
   isPremium?: Prisma.SortOrder
+  category?: Prisma.SortOrder
   htmlLayout?: Prisma.SortOrder
   sections?: Prisma.SortOrder
+  usageCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type TemplateAvgOrderByAggregateInput = {
   price?: Prisma.SortOrder
+  usageCount?: Prisma.SortOrder
 }
 
 export type TemplateMaxOrderByAggregateInput = {
@@ -440,7 +485,9 @@ export type TemplateMaxOrderByAggregateInput = {
   previewUrl?: Prisma.SortOrder
   price?: Prisma.SortOrder
   isPremium?: Prisma.SortOrder
+  category?: Prisma.SortOrder
   htmlLayout?: Prisma.SortOrder
+  usageCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -451,12 +498,15 @@ export type TemplateMinOrderByAggregateInput = {
   previewUrl?: Prisma.SortOrder
   price?: Prisma.SortOrder
   isPremium?: Prisma.SortOrder
+  category?: Prisma.SortOrder
   htmlLayout?: Prisma.SortOrder
+  usageCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type TemplateSumOrderByAggregateInput = {
   price?: Prisma.SortOrder
+  usageCount?: Prisma.SortOrder
 }
 
 export type TemplateCreateNestedOneWithoutResumeInput = {
@@ -483,8 +533,10 @@ export type TemplateCreateWithoutResumeInput = {
   previewUrl: string
   price: number
   isPremium?: boolean
+  category?: string | null
   htmlLayout: string
   sections: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  usageCount?: number
   createdAt?: Date | string
 }
 
@@ -496,8 +548,10 @@ export type TemplateUncheckedCreateWithoutResumeInput = {
   previewUrl: string
   price: number
   isPremium?: boolean
+  category?: string | null
   htmlLayout: string
   sections: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  usageCount?: number
   createdAt?: Date | string
 }
 
@@ -525,8 +579,10 @@ export type TemplateUpdateWithoutResumeInput = {
   previewUrl?: Prisma.StringFieldUpdateOperationsInput | string
   price?: Prisma.IntFieldUpdateOperationsInput | number
   isPremium?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   htmlLayout?: Prisma.StringFieldUpdateOperationsInput | string
   sections?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -538,8 +594,10 @@ export type TemplateUncheckedUpdateWithoutResumeInput = {
   previewUrl?: Prisma.StringFieldUpdateOperationsInput | string
   price?: Prisma.IntFieldUpdateOperationsInput | number
   isPremium?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   htmlLayout?: Prisma.StringFieldUpdateOperationsInput | string
   sections?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  usageCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -582,8 +640,10 @@ export type TemplateSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   previewUrl?: boolean
   price?: boolean
   isPremium?: boolean
+  category?: boolean
   htmlLayout?: boolean
   sections?: boolean
+  usageCount?: boolean
   createdAt?: boolean
   resume?: boolean | Prisma.Template$resumeArgs<ExtArgs>
   _count?: boolean | Prisma.TemplateCountOutputTypeDefaultArgs<ExtArgs>
@@ -597,8 +657,10 @@ export type TemplateSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   previewUrl?: boolean
   price?: boolean
   isPremium?: boolean
+  category?: boolean
   htmlLayout?: boolean
   sections?: boolean
+  usageCount?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["template"]>
 
@@ -610,8 +672,10 @@ export type TemplateSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   previewUrl?: boolean
   price?: boolean
   isPremium?: boolean
+  category?: boolean
   htmlLayout?: boolean
   sections?: boolean
+  usageCount?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["template"]>
 
@@ -623,12 +687,14 @@ export type TemplateSelectScalar = {
   previewUrl?: boolean
   price?: boolean
   isPremium?: boolean
+  category?: boolean
   htmlLayout?: boolean
   sections?: boolean
+  usageCount?: boolean
   createdAt?: boolean
 }
 
-export type TemplateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "descriptions" | "previewUrl" | "price" | "isPremium" | "htmlLayout" | "sections" | "createdAt", ExtArgs["result"]["template"]>
+export type TemplateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "descriptions" | "previewUrl" | "price" | "isPremium" | "category" | "htmlLayout" | "sections" | "usageCount" | "createdAt", ExtArgs["result"]["template"]>
 export type TemplateInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   resume?: boolean | Prisma.Template$resumeArgs<ExtArgs>
   _count?: boolean | Prisma.TemplateCountOutputTypeDefaultArgs<ExtArgs>
@@ -649,8 +715,10 @@ export type $TemplatePayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     previewUrl: string
     price: number
     isPremium: boolean
+    category: string | null
     htmlLayout: string
     sections: runtime.JsonValue
+    usageCount: number
     createdAt: Date
   }, ExtArgs["result"]["template"]>
   composites: {}
@@ -1083,8 +1151,10 @@ export interface TemplateFieldRefs {
   readonly previewUrl: Prisma.FieldRef<"Template", 'String'>
   readonly price: Prisma.FieldRef<"Template", 'Int'>
   readonly isPremium: Prisma.FieldRef<"Template", 'Boolean'>
+  readonly category: Prisma.FieldRef<"Template", 'String'>
   readonly htmlLayout: Prisma.FieldRef<"Template", 'String'>
   readonly sections: Prisma.FieldRef<"Template", 'Json'>
+  readonly usageCount: Prisma.FieldRef<"Template", 'Int'>
   readonly createdAt: Prisma.FieldRef<"Template", 'DateTime'>
 }
     

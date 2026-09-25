@@ -21,17 +21,21 @@ templateRouter.post(
   templateControllers.createTemplateController
 );
 
-// 👉 Get all
+// 👉 Get all (public)
 templateRouter.get(
   "/",
-  authMiddleware,
   templateControllers.getAllTemplates
 );
 
-// 👉 Get single
+// 👉 Get most popular (public)
+templateRouter.get(
+  "/popular",
+  templateControllers.getPopularTemplates
+);
+
+// 👉 Get single (public)
 templateRouter.get(
   "/templateDetails/:id",
-  authMiddleware,
   validateRequest( templateIdSchema ),
   templateControllers.getTemplateDetails
 );

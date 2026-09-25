@@ -16,7 +16,6 @@ import { PROFILE_CACHE_EXPIRE } from "../../config/cacheKeys";
 import { emailQueue } from "../../queue/emailQueue";
 import { getExpiry, hashOTP } from "../../utils/email.utils";
 import { Prisma } from "../../generated/prisma/client";
-import { exchangeCodeForProfile } from "../../utils/google";
 
 
 
@@ -37,11 +36,14 @@ const registerUser = async (payload: IRegisterPayload) => {
         email: payload.email,
         name: payload.name,
         password: payload.password,
-        role: payload.role !== "ADMIN" ? payload.role : "ADMIN"
+        // This function only ever handles the USER registration path -
+        // the caller-supplied role is not trusted here (validated upstream
+        // to be USER/MANAGER, but this path is specifically USER).
+        role: UserRole.USER
       }
     });
 
-    
+
 
     // 2️⃣ Create profile (DB only)
     await prisma.customerProfile.create({
@@ -91,7 +93,8 @@ const registerManager = async (payload: IRegisterPayload) => {
         email: payload.email,
         name: payload.name,
         password: payload.password,
-        role: payload.role !== "ADMIN" ? payload.role : "ADMIN"
+        // This function only ever handles the MANAGER registration path.
+        role: UserRole.MANAGER
       }
     });
 
@@ -140,8 +143,10 @@ const loginUser = async (payload: ILoginUserPayload) => {
   if (attempts > 5)
     throw new AppError("Too many login attempts", 429);
 
-  const data = await auth.api.signInEmail({ body: { email, password } });
-  console.log(data);
+  const { headers, response: data } = await auth.api.signInEmail({
+    body: { email, password },
+    returnHeaders: true,
+  });
 
   if (data.user.status === UserStatus.BANNED)
     throw new AppError("User is blocked", status.FORBIDDEN);
@@ -151,7 +156,17 @@ const loginUser = async (payload: ILoginUserPayload) => {
   if (data.user.isDeleted || data.user.status === UserStatus.DELETED)
     throw new AppError("User is deleted", status.NOT_FOUND);
 
-  const sessionToken = data.token;
+  // better-auth signs the session cookie (token + HMAC signature); the raw
+  // `data.token` DB value fails that signature check on the next request.
+  // Pull the actual signed cookie value out of the response headers instead.
+  const setCookies: string[] = headers.getSetCookie?.() ?? [];
+  const signedCookie: string | undefined = setCookies.find((c) =>
+    c.startsWith("better-auth.session_token=")
+  );
+  let sessionToken: string = data.token;
+  if (signedCookie) {
+    sessionToken = decodeURIComponent(signedCookie.split(";")[0]!.split("=").slice(1).join("="));
+  }
 
   return { sessionToken, user: data.user };
 };
@@ -300,11 +315,12 @@ const verifyEmail = async (payload: {
   try {
     const { email, otp } = payload;
 
-    // 1️⃣ Find verification record
+    // 1️⃣ Find verification record (value is a bcrypt hash, so we can't
+    // filter by it directly - fetch the latest record for this identifier
+    // and compare below)
     const record = await prisma.verification.findFirst({
       where: {
         identifier: email,
-        value: otp,
         type: VerificationType.EMAIL_VERIFY
       },
       orderBy: {
@@ -322,10 +338,17 @@ const verifyEmail = async (payload: {
       throw new AppError("OTP expired", 400);
     }
 
+    const isMatch = await bcrypt.compare(otp, record.value);
 
-
-    if (otp !== record.value) {
-
+    if (!isMatch) {
+      const attempts = record.attempts + 1;
+      // 6-digit OTP = 1M combinations - cap failed attempts before it's
+      // brute-forceable, forcing a fresh resend-otp after the lockout.
+      if (attempts >= 5) {
+        await prisma.verification.delete({ where: { id: record.id } });
+        throw new AppError("Too many failed attempts. Please request a new OTP.", 429);
+      }
+      await prisma.verification.update({ where: { id: record.id }, data: { attempts } });
       throw new AppError("Invalid OTP", 400);
     }
 
@@ -456,12 +479,11 @@ const sendOtp = async (payload: {
   const { email, name, type, expiration = 5 } = payload;
 
   try {
-    // 1️⃣ Generate OTP + hash
+    // 1️⃣ Generate OTP + hash - store only the hash, never the raw OTP
     const otp = generateOTP();
     const tokenHash = await hashOTP(otp);
     const expiresAt = getExpiry(expiration);
-    const isMatch = await bcrypt.compare(otp, tokenHash);
-    console.log(isMatch, otp, tokenHash);
+
     // 2️⃣ DB operations (fast transaction)
     await prisma.$transaction(async (tx) => {
       await tx.verification.deleteMany({
@@ -474,7 +496,7 @@ const sendOtp = async (payload: {
       await tx.verification.create({
         data: {
           identifier: email,
-          value: otp,
+          value: tokenHash,
           type,
           expiresAt
         }
@@ -500,27 +522,26 @@ const sendOtp = async (payload: {
 
 
 const resendOtp = async (email: string, type: VerificationType = VerificationType.EMAIL_VERIFY) => {
-  // 1️⃣ Check user exists
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) throw new AppError("User not found", 404);
-
-  // 2️⃣ Optional: Check cooldown (30s–1min)
-  const lastOtp = await prisma.verification.findFirst({
-    where: { identifier: email, type },
-    orderBy: { createdAt: "desc" }
-  });
-
-  if (lastOtp && lastOtp.createdAt.getTime() + 30_000 > Date.now()) {
+  // Cooldown is keyed purely on the email string, checked before we look
+  // the user up, so the response is identical (timing + shape) whether or
+  // not the account exists - otherwise this endpoint becomes a way to
+  // enumerate registered emails.
+  const cooldownKey = `otp_resend_cooldown:${type}:${email}`;
+  const onCooldown = await redis.get(cooldownKey);
+  if (onCooldown) {
     throw new AppError("Please wait before requesting a new OTP", 429);
   }
+  await redis.set(cooldownKey, "1", "EX", 30);
 
-  // 3️⃣ Reuse sendOtp service
-  await sendOtp({
-    email: user.email,
-    name: user.name,
-    type,
-    expiration: 5
-  });
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (user) {
+    await sendOtp({
+      email: user.email,
+      name: user.name,
+      type,
+      expiration: 5
+    });
+  }
 
   return true
 };
@@ -546,70 +567,6 @@ const googleLoginSuccess = async (
 };
 
 
-// ---------------- GOOGLE OAUTH ----------------
-const googleOAuthCallback = async (code: string, ctx: any) => {
-  const profile = await exchangeCodeForProfile(code);
-
-  const isUser = await prisma.user.findUnique({
-    where:{email:profile.email}
-  });
-
-  const isEmailAccount = await prisma.account.findFirst({
-    where:{userId:isUser?.id!}
-  })
-  
-
-  if(isUser?.googleId === "" &&  isEmailAccount?.password?.length){
-    throw new AppError("account already exist with this email. use email & password ")
-  }
-
-  if(isUser){
-    const {user,token} = await auth.api.signInEmail({
-      body:{
-        email:profile.email,
-        password:"Googledsffsdafs#@dfw254235423"
-      }
-    });
-
-      if (user.status === UserStatus.BANNED) throw new AppError("Account banned", 403);
-
-    return { sessionToken: token };
-
-  }else{
-    const { user } = await auth.api.signUpEmail({
-      body: {
-        email: profile.email,
-        name: profile.name,
-        googleId:profile.googleId,
-        password: "Googledsffsdafs#@dfw254235423",
-        role:UserRole.USER
-      }
-    });
-    
-
-    // 2️⃣ Create profile (DB only)
-    await prisma.customerProfile.create({
-      data: {
-        email: user.email,
-        name: user.name,
-        userId: user.id
-      }
-    });
-
-  if (user.status === UserStatus.BANNED) throw new AppError("Account banned", 403);
-
-   const { token } = await auth.api.signInEmail({
-      body:{
-        email:profile.email,
-        password:"Googledsffsdafs#@dfw254235423"
-      }
-    });
-
-    return { sessionToken: token };
-  }
-};
-
-
 export  const authServices = {
   registerUser,
   loginUser,
@@ -622,5 +579,4 @@ export  const authServices = {
   updateProfile,
   resendOtp,registerManager,
   googleLoginSuccess,
-  googleOAuthCallback
 };

@@ -8,6 +8,7 @@ import streamifier from "streamifier";
 import { getProfileCacheKey } from "../auth/auth.service";
 import { redis } from "../../config/redis";
 import { UserRole } from "../../generated/prisma/enums";
+import { templateServices } from "../template/template.service";
 
 const generateResumeForDownload = async (
    { userId,
@@ -26,14 +27,6 @@ const generateResumeForDownload = async (
    if (resume.userId !== userId) {
       throw new AppError("Unauthorized", status.UNAUTHORIZED);
    }
-   // ✅ check credit
-   const wallet = await prisma.creditWallet.findUnique({
-      where: { userId }
-   });
-
-   if (!wallet || wallet.balance < 10) {
-      throw new AppError("Not enough credits", status.BAD_REQUEST);
-   }
 
    // ✅ template check
    const template = await prisma.template.findUnique({
@@ -42,6 +35,20 @@ const generateResumeForDownload = async (
 
    if (!template) {
       throw new AppError("Template not found", status.NOT_FOUND);
+   }
+
+   // ✅ check credit - only premium templates charge, and only their own
+   // price (was previously a hardcoded 10 regardless of template.isPremium,
+   // so every generation charged even on free templates).
+   let wallet: { balance: number } | null = null;
+   if (template.isPremium) {
+      wallet = await prisma.creditWallet.findUnique({
+         where: { userId }
+      });
+
+      if (!wallet || wallet.balance < template.price) {
+         throw new AppError("Not enough credits", status.BAD_REQUEST);
+      }
    }
 
    // ✅ merge HTML
@@ -88,12 +95,14 @@ const generateResumeForDownload = async (
          }
       });
 
-      await tx.creditWallet.update({
-         where: { userId },
-         data: {
-            balance: { decrement: 10 }
-         }
-      });
+      if (template.isPremium) {
+         await tx.creditWallet.update({
+            where: { userId },
+            data: {
+               balance: { decrement: template.price }
+            }
+         });
+      }
    });
 
    // reset user cache 
@@ -159,7 +168,7 @@ const initResume = async ({
       throw new AppError("Template not found", status.NOT_FOUND);
    }
 
-   return prisma.resume.create({
+   const resume = await prisma.resume.create({
       data: {
          templateId,
          userId,
@@ -169,6 +178,14 @@ const initResume = async ({
          isEdit: true // dirty state
       }
    });
+
+   // Real usage signal for "Most Popular Templates" - fire-and-forget so a
+   // tracking hiccup never blocks the user from actually building.
+   templateServices.incrementUsage(templateId).catch((err) =>
+      console.error("Failed to record template usage:", err)
+   );
+
+   return resume;
 };
 
 const getAllResumeById = async (userId: string) => {

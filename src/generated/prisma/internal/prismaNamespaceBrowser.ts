@@ -175,6 +175,7 @@ export const VerificationScalarFieldEnum = {
   id: 'id',
   identifier: 'identifier',
   value: 'value',
+  attempts: 'attempts',
   expiresAt: 'expiresAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
@@ -372,8 +373,10 @@ export const TemplateScalarFieldEnum = {
   previewUrl: 'previewUrl',
   price: 'price',
   isPremium: 'isPremium',
+  category: 'category',
   htmlLayout: 'htmlLayout',
   sections: 'sections',
+  usageCount: 'usageCount',
   createdAt: 'createdAt'
 } as const
 
