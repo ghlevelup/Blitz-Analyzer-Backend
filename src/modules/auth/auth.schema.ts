@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+// Kept identical to the frontend RegisterSchema password policy so a value
+// that passes client validation can never be rejected here (and vice-versa).
+const strongPassword = z
+  .string()
+  .min(8, "Password must be at least 8 characters long")
+  .regex(/[A-Z]/, "Password must include an uppercase letter")
+  .regex(/[a-z]/, "Password must include a lowercase letter")
+  .regex(/[0-9]/, "Password must include a number");
+
 const registerUserSchema = z.object({
   name: z
     .string()
@@ -9,9 +18,7 @@ const registerUserSchema = z.object({
     .string()
     .email("Please provide a valid email address"),
 
-  password: z
-    .string()
-    .min(6, "Password must be at least 6 characters long"),
+  password: strongPassword,
 
   // Public self-registration can only ever create USER or MANAGER accounts -
   // ADMIN must never be reachable here, or anyone could POST role:"ADMIN"
