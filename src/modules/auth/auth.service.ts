@@ -156,19 +156,15 @@ const loginUser = async (payload: ILoginUserPayload) => {
   if (data.user.isDeleted || data.user.status === UserStatus.DELETED)
     throw new AppError("User is deleted", status.NOT_FOUND);
 
-  // better-auth signs the session cookie (token + HMAC signature); the raw
-  // `data.token` DB value fails that signature check on the next request.
-  // Pull the actual signed cookie value out of the response headers instead.
-  const setCookies: string[] = headers.getSetCookie?.() ?? [];
-  const signedCookie: string | undefined = setCookies.find((c) =>
-    c.startsWith("better-auth.session_token=")
-  );
-  let sessionToken: string = data.token;
-  if (signedCookie) {
-    sessionToken = decodeURIComponent(signedCookie.split(";")[0]!.split("=").slice(1).join("="));
-  }
+  // Forward better-auth's own Set-Cookie headers verbatim. They carry the
+  // correct cookie NAME (which gains a `__Secure-` prefix in production via
+  // useSecureCookies), the signed value, and all attributes for the current
+  // environment. Hand-rebuilding the cookie (old approach) broke in prod:
+  // the name-prefix search failed and it fell back to the raw, unsigned
+  // token, which better-auth then rejected on every later request.
+  const setCookieHeaders: string[] = headers.getSetCookie?.() ?? [];
 
-  return { sessionToken, user: data.user };
+  return { user: data.user, setCookieHeaders };
 };
 
 

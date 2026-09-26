@@ -3,7 +3,6 @@ import { fromNodeHeaders } from "better-auth/node";
 import { sendSuccess } from "../../utils/apiResponse";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { authServices } from "./auth.service";
-import { tokenUtils } from "../../utils/token";
 import { envConfig } from "../../config/env";
 import { auth } from "../../lib/auth";
 import { generateCsrfToken } from "../../middleware/csrf";
@@ -40,13 +39,16 @@ const registerController = asyncHandler(async (req: Request, res: Response) => {
 const loginController = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  const data = await authServices.loginUser({ email, password })
+  const { user, setCookieHeaders } = await authServices.loginUser({ email, password })
 
-  tokenUtils.setBetterAuthSessionCookie(res, data.sessionToken)
+  // Relay better-auth's real signed session cookie(s) unchanged.
+  if (setCookieHeaders.length > 0) {
+    res.setHeader("Set-Cookie", setCookieHeaders);
+  }
 
   return sendSuccess(res, {
     statusCode: 200,
-    data,
+    data: { user },
     message: "your are LoggedIn Sucessfully"
   })
 });
