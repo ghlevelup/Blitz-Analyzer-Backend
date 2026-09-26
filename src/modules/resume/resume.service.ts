@@ -69,7 +69,9 @@ const generateResumeForDownload = async (
          {
             resource_type: "raw",
             folder: "blitz-analyzer/resumes",
-            public_id: `resume-userId_${userId}_templateId_${template.id}`
+            // .pdf in the public_id so the delivered file is recognized as a
+            // PDF (raw uploads keep the id verbatim as the filename/extension).
+            public_id: `resume-userId_${userId}_templateId_${template.id}.pdf`
          },
          (error, result) => {
             if (error) return reject(error);
@@ -111,6 +113,7 @@ const generateResumeForDownload = async (
    
    return {
       resumeUrl: uploadResult.secure_url,
+      name: resume.name,
       reused: false
    };
 };
